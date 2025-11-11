@@ -12,7 +12,6 @@ def init_weights(model):
             torch.nn.init.zeros_(param)
 
 
-
 class FiLMCondSmall(nn.Module):
     def __init__(self, cond_dim, channels_per_block, shared=96):
         super().__init__()
@@ -30,7 +29,6 @@ class FiLMCondSmall(nn.Module):
                 nn.init.xavier_uniform_(p)
 
     def forward(self, c):
-        # c: [B, cond_dim]
         z = self.shared(c)
         gammas, betas = [], []
         for head, ch in zip(self.heads, self.channels_per_block):
@@ -42,10 +40,6 @@ class FiLMCondSmall(nn.Module):
 
 
 class BandConditioningAware(nn.Module):
-    """
-    Fast, band-aware conditioning module.
-    Combines per-band embedding (identity) + attention pooling.
-    """
     def __init__(self, n_bands=8, cond_dim=64, latent_dim=8, band_emb_dim=8, heads=2):
         super().__init__()
         self.n_bands = n_bands
@@ -59,7 +53,6 @@ class BandConditioningAware(nn.Module):
 
     def forward(self, c):
         #print(f'C SHAPE: {c.shape}')
-        # c: [B, n_bands, latent_dim]
         B, nb, d = c.shape
         band_idx = torch.arange(nb, device=c.device)
         #print(f'BAND IDX SHAPE: {band_idx.shape}')
@@ -67,24 +60,21 @@ class BandConditioningAware(nn.Module):
         band_e = self.band_emb(band_idx).unsqueeze(0).expand(B, -1, -1)
         #print(f'BAND E SHAPE: {band_e.shape}')
         #print(f'BAND E: {band_e}')
-        c_with_emb = torch.cat([c, band_e], dim=-1)     # [B, n_bands, latent_dim + emb_dim]
+        c_with_emb = torch.cat([c, band_e], dim=-1)  
         #print(f'C WITH EMB SHAPE: {c_with_emb.shape}')
         #print(f'C WITH EMB: {c_with_emb}')
 
         h = self.proj_in(c_with_emb)
         #print(f'H SHAPE: {h.shape}')
-        q = h.mean(dim=1, keepdim=True)                 # mean-based query (cheap)
+        q = h.mean(dim=1, keepdim=True)      
         attn_out, _ = self.attn(q, h, h)
-        #print(f'ATTN OUT SHAPE: {attn_out.shape}')                # attention pooling over bands
+        #print(f'ATTN OUT SHAPE: {attn_out.shape}') 
         out = self.proj_out(self.norm(attn_out.squeeze(1)))
         #print(f'OUT SHAPE: {out.shape}')
         return out
 
 
 class BandConditioning(nn.Module):
-    """
-    Per-band latent conditioning → global cond vector.
-    """
     def __init__(self, n_bands=16, cond_dim=64, latent_dim=8, band_emb_dim=16, hidden=128):
         super().__init__()
         self.n_bands = n_bands
@@ -119,9 +109,7 @@ class BandConditioning(nn.Module):
         flat = band_feat.reshape(B, -1)
         return self.fc(flat)
 
-# -----------------------------
-# SE Block (reuse your impl)
-# -----------------------------
+
 class SEBlock(nn.Module):
     def __init__(self, channels, reduction=8):
         super().__init__()
@@ -145,7 +133,7 @@ class ResidualBlockTuned(nn.Module):
         self.kernel_size = kernel_size
         self.dilation = dilation
 
-        # expand
+    
         if self.expanded_ch != in_channels:
             conv_expand = nn.Conv1d(in_channels, self.expanded_ch, 1)
             self.expand = nn.utils.weight_norm(conv_expand) if use_weight_norm else conv_expand
@@ -163,7 +151,7 @@ class ResidualBlockTuned(nn.Module):
         self.pointwise_out = nn.Conv1d(self.expanded_ch, in_channels, 1)
         self.skip = nn.Conv1d(in_channels, in_channels, 1)
         self.se = SEBlock(self.expanded_ch, reduction=se_reduction) if se_reduction else None
-        # init
+
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
@@ -195,10 +183,10 @@ class PrismLite(nn.Module):
     def __init__(self,
                  inp_channel=1,
                  out_channel=1,
-                 channels=80,         
+                 channels=64,  
                  kernel_size=3,
-                 n_blocks=9,          
-                 cond_dim=64,
+                 n_blocks=9, 
+                 cond_dim=128,
                  sample_rate=48000,
                  n_bands=8,
                  use_weight_norm=True,
@@ -214,7 +202,6 @@ class PrismLite(nn.Module):
         self.cond_dim = cond_dim
         self.sample_rate = sample_rate
         self.n_bands = n_bands
-
 
         mid = max(8, channels // 3)
         self.input_stem = nn.Sequential(
@@ -249,7 +236,6 @@ class PrismLite(nn.Module):
         final_conv2 = nn.Conv1d(channels, out_channel, 1)
         self.final = nn.Sequential(nn.SiLU(inplace=True), final_conv1, nn.SiLU(inplace=True), final_conv2)
 
-        # init
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
@@ -339,91 +325,10 @@ if __name__ == "__main__":
                       n_bands=BANDS)
     model.eval()
     print(f'NUMBER OF PARAMS: {sum(p.numel() for p in model.parameters() if p.requires_grad)}') 
-    input = torch.randn(2, 2048, 1)  # [B, inp_channel, T]
-    cond = torch.randn(2, BANDS, 8)       # [B, n_bands, latent_dim]
+    input = torch.randn(2, 2048, 1) 
+    cond = torch.randn(2, BANDS, 8) 
     out, new_state = model(input, cond, None)
     #print_model_param_summary(model)
     rf, rf_ms = model.compute_receptive_field()
     print(f"Receptive field: {rf} samples ({rf_ms:.2f} ms)")
 
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------
-# Small Band Conditioning
-# -----------------------------
-'''class BandConditioningSmall(nn.Module):
-    def __init__(self, n_bands=8, cond_dim=64, latent_dim=8, band_emb_dim=8, hidden=64):
-        super().__init__()
-        self.n_bands = n_bands
-        self.latent_dim = latent_dim
-        self.band_emb = nn.Embedding(n_bands, band_emb_dim)
-        self.band_mlp = nn.Sequential(
-            nn.Linear(latent_dim + band_emb_dim, hidden),
-            nn.LeakyReLU(0.2, inplace=True),
-        )
-        # final pooling -> cond_dim
-        self.fc = nn.Sequential(
-            nn.Linear(hidden * n_bands, hidden),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(hidden, cond_dim),
-            nn.LayerNorm(cond_dim)
-        )
-        nn.init.normal_(self.band_emb.weight, std=0.02)
-
-    def forward(self, c):
-        B, nb, d = c.shape
-        if nb != self.n_bands or d != self.latent_dim:
-            raise ValueError(f"Expected [B, {self.n_bands}, {self.latent_dim}], got {c.shape}")
-        band_idx = torch.arange(self.n_bands, device=c.device)
-        band_e = self.band_emb(band_idx).unsqueeze(0).expand(B, -1, -1)
-        band_feat = torch.cat([c, band_e], dim=-1)
-        band_feat = self.band_mlp(band_feat)
-        flat = band_feat.reshape(B, -1)
-        return self.fc(flat)'''
-
-
-
-'''out = self.depthwise(out)
-        out = self.norm(out)
-        out = torch.tanh(out) * torch.sigmoid(out)
-        if gamma is not None and beta is not None:
-            out = gamma * out + beta
-        if self.se is not None:
-            out = self.se(out)
-        out = self.pointwise_out(out)
-        
-        res = residual + out * 0.5'''
-
-
-
-
-
-'''class BandConditioningLite(nn.Module):
-    """
-    Uses attention pooling instead of big per-band MLP.
-    """
-    def __init__(self, n_bands=8, cond_dim=64, latent_dim=8, heads=2):
-        super().__init__()
-        self.query = nn.Parameter(torch.randn(1, cond_dim))
-        self.proj_in = nn.Linear(latent_dim, cond_dim)
-        self.attn = nn.MultiheadAttention(cond_dim, heads, batch_first=True)
-        self.norm = nn.LayerNorm(cond_dim)
-        self.proj_out = nn.Linear(cond_dim, cond_dim)
-
-    def forward(self, c):
-        # c: [B, n_bands, latent_dim]
-        h = self.proj_in(c)
-        q = self.query.expand(c.size(0), -1).unsqueeze(1)
-        attn_out, _ = self.attn(q, h, h)
-        out = self.proj_out(self.norm(attn_out.squeeze(1)))
-        return out'''
