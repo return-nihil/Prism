@@ -1,0 +1,4 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/TestTorch",
+    "cmake.buildDirectory": "${workspaceFolder}/TestTorch/build"
+}
