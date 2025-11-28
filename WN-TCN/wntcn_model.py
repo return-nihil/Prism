@@ -286,7 +286,7 @@ def print_model_param_summary(model):
 
 
 if __name__ == "__main__":
-    BANDS=16
+    BANDS=8
     model = WN_TCN(inp_channel=1, 
                       out_channel=1, 
                       channels=64, 
