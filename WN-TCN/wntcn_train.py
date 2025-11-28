@@ -11,7 +11,7 @@ from datetime import datetime
 
 from wntcn_dataset import Prism_Dataset, MelBandFilter
 from wntcn_model import WN_TCN, init_weights
-from losses import TCN_Loss
+from wntcn_losses import WNTCN_Loss
 
 CHUNK_SIZE = 2048
 BAND_CONFIGS = [8, 6, 4, 3, 2, 1]
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         print(f"Model parameters: {num_params:,}")
         print(f"Receptive field: {rf} samples ({rf_ms:.2f} ms)")
         
-        criterion = TCN_Loss().to(device)
+        criterion = WNTCN_Loss().to(device)
         optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-5)
         scheduler = optim.lr_scheduler.LambdaLR(
             optimizer,
