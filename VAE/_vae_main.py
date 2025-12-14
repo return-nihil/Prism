@@ -11,12 +11,12 @@ from vae_train import train
 from vae_visualizers import tsne_on_latents
 
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 OUTPUT_MODELS = ""
 OUTPUT_VAE_LATENTS_CSV = ""
 METADATA_CSV = ""
 LABELS = ["kot", "rr", "rm"] # dk jr
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def extract_latents(dataloader, model, label_to_index, index_to_label, output_path, device):
