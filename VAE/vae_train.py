@@ -1,6 +1,6 @@
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from losses import VAE_Train_Loss, VAE_Valid_Loss
+from vae_losses import VAE_Train_Loss, VAE_Valid_Loss
 
 
 def train(model, 
