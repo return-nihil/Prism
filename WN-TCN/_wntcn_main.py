@@ -13,36 +13,32 @@ from wntcn_model import WN_TCN, init_weights
 from wntcn_losses import WNTCN_Loss
 from wntcn_train import train_one_epoch, test_model
 
+from load_config import load_config
+cfg = load_config("config.yaml")
 
-CHUNK_SIZE = 2048
-BAND_CONFIGS = [8, 6, 4, 3, 2, 1]
-BATCH_SIZE = 64
-EPOCHS = 300
-LEARNING_RATE = 1e-3
-MIN_LR = 1e-6
-SEED = 42
-DATA_CSV = ""
-UNPROCESSED_WAV = ""
+
+CHUNK_SIZE = cfg["data_processing"]["chunk_length"]
+BAND_CONFIGS = cfg["training"]["wntcn"]["band_configs"]
+BATCH_SIZE = cfg["training"]["wntcn"]["batch_size"]
+EPOCHS = cfg["training"]["wntcn"]["epochs"]
+LEARNING_RATE = cfg["training"]["wntcn"]["learning_rate"]
+MIN_LR = cfg["training"]["wntcn"]["min_lr"]
+SEED = cfg["seed"]
+UNPROCESSED_WAV = cfg["paths"]["unprocessed_wav"]
+
+LATENT_DIM = cfg["training"]["vae"]["latent_dim"]
+
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-PEDAL_LIST = ["rr", "rm", "kot"]
-LATENT_DIM = 8
-DATA_EMB = ""
-OUTPUT_DIR = "./OUTS"
-
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs("wntcn_output", exist_ok=True)
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 random.seed(SEED)
 
 
 def run_training_pipeline():
-    df_full = pd.read_csv(DATA_CSV)
-    df_emb_full = pd.read_csv(DATA_EMB)
-    df = df_full[df_full['effect'].isin(PEDAL_LIST)].reset_index(drop=True)
-    df_emb = df_emb_full[df_emb_full['label'].isin(PEDAL_LIST)].reset_index(drop=True)
-    all_indices = df['index'].unique()
+    df_emb = pd.read_csv("DATA/_prepared_data/metadata_with_latents.csv")
+    all_indices = df_emb['index'].unique()
     max_index = all_indices.max()
     
     all_indices = np.arange(max_index + 1)
@@ -56,7 +52,7 @@ def run_training_pipeline():
     print(f"Total chunks: {len(all_indices)}, Train: {len(train_indices)}, Test: {len(test_indices)}")
     print(f"Split is fixed with SEED={SEED}")
     
-    results_file = os.path.join(OUTPUT_DIR, "results.txt")
+    results_file = os.path.join("wntcn_output", "results.txt")
     
     with open(results_file, 'w') as f:
         f.write(f"Multi-band Training Experiment (Simplified v2)\n")
@@ -75,8 +71,7 @@ def run_training_pipeline():
         
         
         train_dataset = Prism_Dataset(
-            dataframe=df,
-            dataframe_emb=df_emb,
+            dataframe=df_emb,
             unprocessed_wav_path=UNPROCESSED_WAV,
             chunk_size=CHUNK_SIZE,
             n_bands=n_bands,
@@ -84,8 +79,7 @@ def run_training_pipeline():
         )
         
         test_dataset = Prism_Dataset(
-            dataframe=df,
-            dataframe_emb=df_emb,
+            dataframe=df_emb,
             unprocessed_wav_path=UNPROCESSED_WAV,
             chunk_size=CHUNK_SIZE,
             n_bands=n_bands,
@@ -140,7 +134,7 @@ def run_training_pipeline():
         )
     
         
-        model_path = os.path.join(OUTPUT_DIR, f"model_{n_bands}bands.pth")
+        model_path = os.path.join("wntcn_output", f"model_{n_bands}bands.pth")
         torch.save({
             'n_bands': n_bands,
             'model_state_dict': model.state_dict(),
@@ -173,7 +167,7 @@ def run_training_pipeline():
     print(f"\n{'='*80}")
     print("All experiments completed!")
     print(f"Results saved to: {results_file}")
-    print(f"Models saved to: {OUTPUT_DIR}")
+    print("Models saved to: wntcn_output")
     print(f"{'='*80}\n")
 
 

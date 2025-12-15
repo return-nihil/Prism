@@ -10,12 +10,16 @@ from vae_dataset import VAE_Dataset
 from vae_train import train
 from vae_visualizers import tsne_on_latents
 
+from load_config import load_config
+cfg = load_config("config.yaml")
 
-OUTPUT_MODELS = ""
-OUTPUT_VAE_LATENTS_CSV = ""
-METADATA_CSV = ""
-OUTPUT_METADATA_WITH_LATENTS_CSV = ""
-LABELS = ["kot", "rr", "rm"] # dk jr
+
+METADATA_CSV = os.path.join(cfg["paths"]["data_processed_folder"], "sweeps_metadata.csv")
+LABELS = cfg["data_processing"]["pedals"]
+BATCH_SIZE = cfg["training"]["vae"]["batch_size"]
+EPOCHS = cfg["training"]["vae"]["epochs"]
+LEARNING_RATE = cfg["training"]["vae"]["learning_rate"]
+LATENT_DIM = cfg["training"]["vae"]["latent_dim"]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -41,7 +45,7 @@ def extract_latents(dataloader, model, label_to_index, index_to_label, output_pa
 
     df = pd.DataFrame(all_data)
     df['pedal'] = df['pedal'].map(index_to_label)
-    df.to_csv(output_path, index=False)
+    df.to_csv(os.path.join(output_path, "vae_latents.csv"), index=False)
     print("Latents saved")
 
 
@@ -73,35 +77,35 @@ def run_training_pipeline():
     val_dataset = VAE_Dataset(val_df)
     
     train_dataloader = DataLoader(train_dataset, 
-                                  batch_size=16, 
+                                  batch_size=BATCH_SIZE, 
                                   shuffle=True)
     val_dataloader = DataLoader(val_dataset, 
-                                batch_size=16, 
+                                batch_size=BATCH_SIZE, 
                                 shuffle=False)
 
-    model = Prism_VAE().to(DEVICE)
+    model = Prism_VAE(latent_dim=LATENT_DIM).to(DEVICE)
     model.apply(weights_init)
 
     optimizer_model = Adam(model.parameters(), 
-                           lr=1e-3, 
+                           lr=LEARNING_RATE, 
                            weight_decay=1e-5)
 
-    os.makedirs(OUTPUT_MODELS, exist_ok=True)
+    os.makedirs("vae_output", exist_ok=True)
 
     train(model=model,
           train_loader=train_dataloader,
           val_loader=val_dataloader,
           optimizer_model=optimizer_model, 
-          epochs=1000,
+          epochs=EPOCHS,
           device=DEVICE,
-          output_path=OUTPUT_MODELS)
+          output_path="vae_output")
 
     extract_latents(
         dataloader=full_dataloader,
         model=model,
         label_to_index=label_to_index,
         index_to_label=index_to_label,
-        output_path=OUTPUT_VAE_LATENTS_CSV,
+        output_path="vae_output",
         device=DEVICE)
 
     tsne_on_latents("vae_output/vae_latents.csv", 
@@ -109,8 +113,8 @@ def run_training_pipeline():
                     "vae_output/vae_latents_tsne.png")
     
     merge_metadata_with_latents(METADATA_CSV, 
-                                OUTPUT_VAE_LATENTS_CSV,
-                                OUTPUT_METADATA_WITH_LATENTS_CSV)
+                                "vae_output/vae_latents.csv",
+                                "DATA/_prepared_data/metadata_with_latents.csv")
 
 if __name__ == "__main__":
     run_training_pipeline()

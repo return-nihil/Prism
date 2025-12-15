@@ -6,6 +6,9 @@ import librosa
 import numpy as np
 import pandas as pd
 
+from load_config import load_config
+cfg = load_config("config.yaml")
+
 """
 According to https://zenodo.org/records/15389653, assumes files in DATA_FOLDER follow the pattern:
 s[a]_[pedal]_g[x]_t[y].wav
@@ -13,16 +16,16 @@ e.g. s0_tube_screamer_g0_t3.wav
 """
 
 
-DATA_FOLDER = Path("/home/ardan/ARDAN/MorphDrive/dataset/_original_data")
-OUTPUT_FOLDER = Path("/home/ardan/ARDAN/_OK_CODE/Prism/DATA/_prepared_data")
+DATA_FOLDER = cfg["paths"]["data_folder"]
+OUTPUT_FOLDER = cfg["paths"]["data_processed_folder"]
 SWEEPS_DIR = OUTPUT_FOLDER / "sweeps"
 CHUNKS_DIR = OUTPUT_FOLDER / "audio_chunks"
 
-SWEEP_SR = 32000
-INITIAL_OFFSET = 16000
-SWEEP_LENGTH = 64000
-CHUNK_LENGTH = 2048
-FILE_PERCENTAGE = 0.01
+SWEEP_SR = cfg["data_processing"]["sweep_sr"]
+INITIAL_OFFSET = cfg["data_processing"]["sweep_offset"]
+SWEEP_LENGTH = cfg["data_processing"]["sweep_length"]
+CHUNK_LENGTH = cfg["data_processing"]["chunk_length"]
+FILE_PERCENTAGE = cfg["data_processing"]["file_percentage"]
 
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 SWEEPS_DIR.mkdir(parents=True, exist_ok=True)

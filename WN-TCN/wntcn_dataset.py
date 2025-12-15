@@ -39,11 +39,15 @@ class MelBandFilter(nn.Module):
             high_eff = min(self.sr / 2.0, high + 0.05 * bw)
             
             if low_eff <= 0:
-                h = firwin(self.filter_len, high_eff, pass_zero=True, 
-                          fs=self.sr, window='hamming')
+                h = firwin(
+                    self.filter_len, high_eff,
+                    pass_zero=True, fs=self.sr, window='hamming'
+                )
             else:
-                h = firwin(self.filter_len, [low_eff, high_eff], pass_zero=False,
-                          fs=self.sr, window='hamming')
+                h = firwin(
+                    self.filter_len, [low_eff, high_eff],
+                    pass_zero=False, fs=self.sr, window='hamming'
+                )
             filters.append(h)
         
         return np.stack(filters)
@@ -81,64 +85,42 @@ class MelBandFilter(nn.Module):
 
 
 class Prism_Dataset(Dataset):
-    def __init__(self, dataframe, dataframe_emb, unprocessed_wav_path, 
-                 chunk_size=2048, n_bands=16, allowed_indices=None):
-        
+    def __init__(
+        self,
+        dataframe,
+        unprocessed_wav_path,
+        chunk_size=2048,
+        n_bands=8,
+        allowed_indices=None,
+    ):
         self.chunk_size = chunk_size
         self.n_bands = n_bands
-        
-        self.df = dataframe
-        self.df_emb = self._prepare_embeddings_dataframe(dataframe_emb)
+        self.df = dataframe.copy()
+
         self.unprocessed_audio, self.sr = self._load_unprocessed_audio(unprocessed_wav_path)
-        
+
         self.pedals_list = sorted(self.df['effect'].unique().tolist())
         self.pedal2id = {p: i for i, p in enumerate(self.pedals_list)}
         self.gain_list = sorted(self.df['gain'].unique().tolist())
         self.tone_list = sorted(self.df['tone'].unique().tolist())
-        
-        self.allowed_indices = self._validate_indices(allowed_indices)
+
+        self.allowed_indices = allowed_indices
         self.df_by_chunk = self._index_chunks()
-        
+
         if self.n_bands > 1:
             self.filter = MelBandFilter(n_bands=n_bands, filter_len=513, sr=self.sr)
-    
-    
+
     def _load_unprocessed_audio(self, path):
         audio, sr = sf.read(path)
         if audio.ndim > 1:
             audio = audio[:, 0]
         return audio, sr
-    
-
-    def _prepare_embeddings_dataframe(self, df_emb):
-        df_copy = df_emb.copy()
-        df_copy['latents'] = df_copy['latents'].apply(
-            lambda s: np.array(eval(s), dtype=np.float32) if isinstance(s, str) 
-                     else np.array(s, dtype=np.float32)
-        )
-        return df_copy
-    
-
-    def _validate_indices(self, allowed_indices):
-        if allowed_indices is None:
-            raise ValueError("You must provide allowed_indices!")
-        
-        valid_indices = np.array([
-            i for i in allowed_indices if i in self.df['index'].unique()
-        ])
-        
-        if len(valid_indices) == 0:
-            raise ValueError("No valid indices!")
-        
-        return valid_indices
-    
 
     def _index_chunks(self):
         return {
             chunk_idx: self.df[self.df['index'] == chunk_idx]
             for chunk_idx in self.allowed_indices
         }
-    
 
     def _load_audio(self, path):
         processed_audio = np.load(path).astype(np.float32)
@@ -149,46 +131,33 @@ class Prism_Dataset(Dataset):
                 mode='constant'
             )
         return processed_audio
-    
-
-    def _get_latent_vector(self, effect, gain, tone):
-        row = self.df_emb[
-            (self.df_emb['label'] == effect) &
-            (self.df_emb['g'] == gain) &
-            (self.df_emb['t'] == tone)
-        ]
-        
-        if len(row) == 0:
-            raise ValueError(
-                f"No matching latent vector for ({effect}, g={gain}, t={tone})"
-            )
-        
-        return torch.from_numpy(row.iloc[0]['latents'])
-    
 
     def _get_input_chunk(self, chunk_idx):
         start = chunk_idx * self.chunk_size
         end = start + self.chunk_size
         input_chunk = self.unprocessed_audio[start:end]
-        
+
         if len(input_chunk) < self.chunk_size:
             input_chunk = np.pad(
                 input_chunk,
                 (0, self.chunk_size - len(input_chunk)),
                 mode='constant'
             )
-        
+
         return torch.from_numpy(input_chunk.astype(np.float32))
-    
+
 
     def _process_single_band(self, df_chunk):
         row = df_chunk.sample(n=1).iloc[0]
+
         processed_audio = self._load_audio(row['path'])
         processed_tensor = torch.from_numpy(processed_audio)
-        latent_vec = self._get_latent_vector(
-            row['effect'], row['gain'], row['tone']
-        ).unsqueeze(0)
-        
+
+        latent = row['latents']
+        if not isinstance(latent, np.ndarray):
+            latent = np.asarray(latent, dtype=np.float32)
+        latent_vec = torch.from_numpy(latent).unsqueeze(0)
+
         return {
             'target_bands': processed_tensor.unsqueeze(0),
             'conditioning': latent_vec,
@@ -196,25 +165,23 @@ class Prism_Dataset(Dataset):
             'gains': [row['gain']],
             'tones': [row['tone']]
         }
-    
-    
+
     def _sample_unique_effects(self, df_chunk):
         alpha = 0.4
         max_unique = min(self.n_bands, len(df_chunk))
-        
+
         probs = np.exp(alpha * np.arange(1, max_unique + 1))
         probs /= probs.sum()
-        
+
         k_unique = np.random.choice(np.arange(1, max_unique + 1), p=probs)
         sampled_rows = df_chunk.sample(n=k_unique, replace=False)
-        
+
         sample_pool_indices = list(range(len(sampled_rows)))
         assigned_sample_indices = np.random.choice(
             sample_pool_indices, size=self.n_bands, replace=True
         )
-        
+
         return sampled_rows, assigned_sample_indices
-    
 
     def _load_samples(self, sampled_rows):
         loaded_audio = {}
@@ -222,76 +189,77 @@ class Prism_Dataset(Dataset):
         pedal_names = {}
         gains = {}
         tones = {}
-        
+
         for i, (_, row) in enumerate(sampled_rows.iterrows()):
             loaded_audio[i] = self._load_audio(row['path'])
-            loaded_latents[i] = self._get_latent_vector(
-                row['effect'], row['gain'], row['tone']
-            )
+
+            latent = row['latents']
+            if not isinstance(latent, np.ndarray):
+                latent = np.asarray(latent, dtype=np.float32)
+            loaded_latents[i] = torch.from_numpy(latent)
+
             pedal_names[i] = row['effect']
             gains[i] = row['gain']
             tones[i] = row['tone']
-        
+
         return loaded_audio, loaded_latents, pedal_names, gains, tones
-    
 
     def _apply_band_filter(self, audio_tensor, band_idx):
         all_filters = self.filter.filters.view(self.n_bands, 1, -1)
         pad = (self.filter.filter_len - 1) // 2
-        
+
         h = all_filters[band_idx:band_idx+1]
         y_i = F.conv1d(audio_tensor, h, padding=pad)
-        
+
         return y_i.squeeze(0).squeeze(0)[:self.chunk_size]
-    
 
     def _process_multi_band(self, df_chunk):
         sampled_rows, assigned_sample_indices = self._sample_unique_effects(df_chunk)
         loaded_audio, loaded_latents, pedal_names, gains, tones = self._load_samples(sampled_rows)
-        
+
         target_bands = []
         conditioning_list = []
         output_pedal_names = []
         output_gains = []
         output_tones = []
-        
+
         for band_idx, sample_idx in enumerate(assigned_sample_indices):
             proc_audio = loaded_audio[sample_idx]
             proc_audio_tensor = torch.from_numpy(proc_audio).view(1, 1, -1)
-            
+
             target_band = self._apply_band_filter(proc_audio_tensor, band_idx)
-            
+
             target_bands.append(target_band)
             conditioning_list.append(loaded_latents[sample_idx])
             output_pedal_names.append(pedal_names[sample_idx])
             output_gains.append(gains[sample_idx])
             output_tones.append(tones[sample_idx])
-        
+
         return {
-            'target_bands': torch.stack(target_bands, dim=0),
-            'conditioning': torch.stack(conditioning_list, dim=0),
+            'target_bands': torch.stack(target_bands, dim=0), 
+            'conditioning': torch.stack(conditioning_list, dim=0), 
             'pedal_names': output_pedal_names,
             'gains': output_gains,
             'tones': output_tones
         }
-    
+
 
     def __len__(self):
         return len(self.allowed_indices)
-    
+
     def __getitem__(self, idx):
         chunk_idx = self.allowed_indices[idx]
         input_chunk = self._get_input_chunk(chunk_idx)
-        
+
         df_chunk = self.df_by_chunk[chunk_idx]
         if len(df_chunk) == 0:
             raise ValueError(f"No processed samples for chunk {chunk_idx}")
-        
+
         if self.n_bands == 1:
             processed_data = self._process_single_band(df_chunk)
         else:
             processed_data = self._process_multi_band(df_chunk)
-        
+
         return {
             "input_chunk": input_chunk,
             "conditioning": processed_data['conditioning'],
@@ -299,5 +267,5 @@ class Prism_Dataset(Dataset):
             "pedal_names": processed_data['pedal_names'],
             "gains": processed_data['gains'],
             "tones": processed_data['tones'],
-            "_raw_dataset_idx": idx
+            "_raw_dataset_idx": idx,
         }

@@ -1,4 +1,5 @@
 import torch
+import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from vae_losses import VAE_Train_Loss, VAE_Valid_Loss
 
@@ -53,7 +54,7 @@ def train(model,
         if val_l1 < best_val_l1 - 1e-6:
             best_val_l1 = val_l1
             epochs_no_improve = 0
-            torch.save(model.state_dict(), output_path)
+            torch.save(model.state_dict(), os.path.join(output_path, "best_model.pth"))
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= early_stopping_patience:
@@ -65,7 +66,7 @@ def train(model,
               f"KL: {total_kl_loss / len(train_loader):.4f} | "
               f"Val L1: {val_l1:.4f}")
 
-    torch.save(model.state_dict(), output_path.replace('.pth', '_final.pth'))
+    torch.save(model.state_dict(), os.path.join(output_path, "final_model.pth"))
 
 
 def evaluate(model, val_loader, device):
