@@ -1,0 +1,30 @@
+
+seed: 42
+
+paths:
+  data_folder: ""
+  data_processed_folder: "./_prepared_data"
+  unprocessed_wav: ""
+
+data_processing:
+  pedals: ["rr", "rm", "kot"] # list of pedals to include
+  chunk_length: 2048 
+  file_percentage: 1.0 # 100%
+  sweep_sr: 32000
+  sweep_offset: 16000
+  sweep_length: 64000
+
+training:
+  vae:
+    latent_dim: 8
+    batch_size: 16
+    epochs: 1000
+    learning_rate: 1.0e-3
+  wntcn:
+    batch_size: 64
+    epochs: 300
+    learning_rate: 1.0e-3
+    min_lr: 1.0e-6
+    band_configs: [8, 6, 4, 3, 2, 1]
+
+
