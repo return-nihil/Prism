@@ -11,7 +11,7 @@ class VAE_Dataset(Dataset):
         return len(self.df)
 
     def get_unique_labels(self):
-        return self.df["label"].unique()
+        return self.df["file"].unique()
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]

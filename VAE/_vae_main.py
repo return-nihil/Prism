@@ -14,6 +14,7 @@ from vae_visualizers import tsne_on_latents
 OUTPUT_MODELS = ""
 OUTPUT_VAE_LATENTS_CSV = ""
 METADATA_CSV = ""
+OUTPUT_METADATA_WITH_LATENTS_CSV = ""
 LABELS = ["kot", "rr", "rm"] # dk jr
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,6 +43,15 @@ def extract_latents(dataloader, model, label_to_index, index_to_label, output_pa
     df['pedal'] = df['pedal'].map(index_to_label)
     df.to_csv(output_path, index=False)
     print("Latents saved")
+
+
+def merge_metadata_with_latents(metadata_csv, latents_csv, output_csv):
+    metadata_df = pd.read_csv(metadata_csv)
+    latents_df = pd.read_csv(latents_csv)
+
+    merged_df = pd.merge(metadata_df, latents_df, on=["pedal", "gain", "tone"])
+    merged_df.to_csv(output_csv, index=False)
+    print(f"Merged metadata and latents saved to: {output_csv}")
 
 
 def run_training_pipeline():
@@ -97,6 +107,10 @@ def run_training_pipeline():
     tsne_on_latents("vae_output/vae_latents.csv", 
                     "vae_output/vae_latents_tsne.csv", 
                     "vae_output/vae_latents_tsne.png")
+    
+    merge_metadata_with_latents(METADATA_CSV, 
+                                OUTPUT_VAE_LATENTS_CSV,
+                                OUTPUT_METADATA_WITH_LATENTS_CSV)
 
 if __name__ == "__main__":
     run_training_pipeline()
