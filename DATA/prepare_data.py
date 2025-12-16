@@ -6,6 +6,8 @@ import librosa
 import numpy as np
 import pandas as pd
 
+import os, sys
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 from load_config import load_config
 cfg = load_config("config.yaml")
 
@@ -18,8 +20,8 @@ e.g. s0_tube_screamer_g0_t3.wav
 
 DATA_FOLDER = cfg["paths"]["data_folder"]
 OUTPUT_FOLDER = cfg["paths"]["data_processed_folder"]
-SWEEPS_DIR = OUTPUT_FOLDER / "sweeps"
-CHUNKS_DIR = OUTPUT_FOLDER / "audio_chunks"
+SWEEPS_DIR = os.path.join(OUTPUT_FOLDER,"sweeps")
+CHUNKS_DIR = os.path.join(OUTPUT_FOLDER,"audio_chunks")
 
 SWEEP_SR = cfg["data_processing"]["sweep_sr"]
 INITIAL_OFFSET = cfg["data_processing"]["sweep_offset"]
@@ -27,9 +29,9 @@ SWEEP_LENGTH = cfg["data_processing"]["sweep_length"]
 CHUNK_LENGTH = cfg["data_processing"]["chunk_length"]
 FILE_PERCENTAGE = cfg["data_processing"]["file_percentage"]
 
-OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
-SWEEPS_DIR.mkdir(parents=True, exist_ok=True)
-CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+os.makedirs(SWEEPS_DIR, exist_ok=True)
+os.makedirs(CHUNKS_DIR, exist_ok=True)
 
 
 SWEEP_PATTERN = re.compile(r"s\d+_([^_]+)_g(\d+)_t(\d+)\.wav$")
@@ -60,14 +62,14 @@ def extract_sweeps():
                 continue
 
             pedal_name, gain, tone = parsed
-            wav_path = root / file_name
+            wav_path = os.path.join(root, file_name)
             print(f"Processing {wav_path}...")
 
             audio, _ = librosa.load(wav_path, sr=SWEEP_SR, mono=True)
             sweep = audio[INITIAL_OFFSET:INITIAL_OFFSET + SWEEP_LENGTH]
 
             npy_name = file_name.replace(".wav", ".npy")
-            npy_path = SWEEPS_DIR / npy_name
+            npy_path = os.path.join(SWEEPS_DIR, npy_name)
             np.save(npy_path, sweep.astype(np.float32))
 
             rows.append(
@@ -81,7 +83,7 @@ def extract_sweeps():
             )
 
     df = pd.DataFrame(rows)
-    metadata_path = OUTPUT_FOLDER / "sweeps_metadata.csv"
+    metadata_path = os.path.join(OUTPUT_FOLDER,"sweeps_metadata.csv")
     df.to_csv(metadata_path, index=False)
     print(f"Saved sweep metadata to: {metadata_path}")
 
@@ -102,7 +104,7 @@ def extract_chunks():
                 continue
 
             pedal_name, gain, tone = parsed
-            wav_path = root / file_name
+            wav_path = os.path.join(root, file_name)
             print(f"Chunking {wav_path}...")
 
             audio, _ = librosa.load(wav_path, sr=SWEEP_SR, mono=True)
@@ -121,7 +123,7 @@ def extract_chunks():
                 chunk = audio[start:end]
 
                 chunk_name = f"{pedal_name}_{idx}_g{gain}_t{tone}.npy"
-                chunk_path = CHUNKS_DIR / chunk_name
+                chunk_path = os.path.join(CHUNKS_DIR, chunk_name)
                 np.save(chunk_path, chunk.astype(np.float32))
 
                 rows.append(
@@ -136,7 +138,7 @@ def extract_chunks():
                 )
 
     df = pd.DataFrame(rows)
-    metadata_path = OUTPUT_FOLDER / "audio_chunks_metadata.csv"
+    metadata_path = os.path.join(OUTPUT_FOLDER,"audio_chunks_metadata.csv")
     df.to_csv(metadata_path, index=False)
     print(f"Saved chunk metadata to: {metadata_path}")
 

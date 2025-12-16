@@ -13,6 +13,8 @@ from wntcn_model import WN_TCN, init_weights
 from wntcn_losses import WNTCN_Loss
 from wntcn_train import train_one_epoch, test_model
 
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from load_config import load_config
 cfg = load_config("config.yaml")
 

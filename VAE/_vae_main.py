@@ -10,6 +10,8 @@ from vae_dataset import VAE_Dataset
 from vae_train import train
 from vae_visualizers import tsne_on_latents
 
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from load_config import load_config
 cfg = load_config("config.yaml")
 

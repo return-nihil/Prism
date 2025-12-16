@@ -31,6 +31,7 @@ def train(model,
 
         for batch in train_loader:
             model.train()
+            print('batch keys:', batch.keys() )
             audio = batch['audio'].float().to(device).unsqueeze(1)
 
             optimizer_model.zero_grad()
