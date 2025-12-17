@@ -1,15 +1,15 @@
-
+# TEST Configuration file for training VAE and WN-TCN models for 1 Epoch each
 seed: 42
 
 paths:
-  data_folder: "./DATA/" # specify your data folder here
-  unprocessed_wav: "./DATA/input_unprocessed.wav" # specify your unprocessed wav file here
+  data_folder: "./DATA/bigfella/"
+  data_processed_folder: "./_prepared_data"
+  unprocessed_wav: "./DATA/input_unprocessed.wav"
   vae_output_folder: "./VAE/vae_output/"
   wntcn_output_folder: "./WN-TCN/wntcn_output/"
-  data_processed_folder: "./_prepared_data"
 
 data_processing:
-  pedals: ["pedal1", "pedal2", "pedal3"] # list of pedals to include
+  pedals: ["bigfella"] # list of pedals to include
   chunk_length: 2048 
   file_percentage: 1.0 # 100%
   sweep_sr: 32000
@@ -30,13 +30,11 @@ training:
   vae:
     latent_dim: 8
     batch_size: 16
-    epochs: 1000
+    epochs: 1
     learning_rate: 1.0e-3
   wntcn:
     batch_size: 64
-    epochs: 300
+    epochs: 1
     learning_rate: 1.0e-3
     min_lr: 1.0e-6
-    band_configs: [8, 6, 4, 3, 2, 1] # this will train all configs + 1-band baseline
-
-
+    band_configs: [2,1] # this will train all configs + 1-band baseline

@@ -87,7 +87,8 @@ class MelBandFilter(nn.Module):
 class Prism_Dataset(Dataset):
     def __init__(
         self,
-        dataframe,
+        audio_dataframe,
+        latent_dataframe,
         unprocessed_wav_path,
         chunk_size=2048,
         n_bands=8,
@@ -95,11 +96,24 @@ class Prism_Dataset(Dataset):
     ):
         self.chunk_size = chunk_size
         self.n_bands = n_bands
-        self.df = dataframe.copy()
+        # self.df = dataframe.copy()
+
+        # drop file column from both
+        audio_df = audio_dataframe.drop(columns=['file'])
+        latent_df = latent_dataframe.drop(columns=['file', 'sweep_path'])
+
+        # create a merged dataframe using keys pedal, gain, tone
+        self.df = audio_df.merge(
+            latent_df,
+            on=["pedal", "gain", "tone"],
+            how="inner",
+            suffixes=('_audio', '_latent')
+        )
+        print(f"Merged dataframe has {len(self.df)} entries.")
 
         self.unprocessed_audio, self.sr = self._load_unprocessed_audio(unprocessed_wav_path)
 
-        self.pedals_list = sorted(self.df['effect'].unique().tolist())
+        self.pedals_list = sorted(self.df['pedal'].unique().tolist())
         self.pedal2id = {p: i for i, p in enumerate(self.pedals_list)}
         self.gain_list = sorted(self.df['gain'].unique().tolist())
         self.tone_list = sorted(self.df['tone'].unique().tolist())
@@ -150,18 +164,27 @@ class Prism_Dataset(Dataset):
     def _process_single_band(self, df_chunk):
         row = df_chunk.sample(n=1).iloc[0]
 
-        processed_audio = self._load_audio(row['path'])
+        processed_audio = self._load_audio(row['chunk_path'])
         processed_tensor = torch.from_numpy(processed_audio)
 
         latent = row['latents']
+        # If it's a string, parse it manually
+        if isinstance(latent, str):
+            # Remove brackets and split by comma
+            latent = latent.strip('[]').split(',')
+            # Convert each element to float
+            latent = [float(x.strip()) for x in latent]
+
+        # Now convert to numpy array
         if not isinstance(latent, np.ndarray):
             latent = np.asarray(latent, dtype=np.float32)
+
         latent_vec = torch.from_numpy(latent).unsqueeze(0)
 
         return {
             'target_bands': processed_tensor.unsqueeze(0),
             'conditioning': latent_vec,
-            'pedal_names': [row['effect']],
+            'pedal_names': [row['pedal']],
             'gains': [row['gain']],
             'tones': [row['tone']]
         }
@@ -191,14 +214,24 @@ class Prism_Dataset(Dataset):
         tones = {}
 
         for i, (_, row) in enumerate(sampled_rows.iterrows()):
-            loaded_audio[i] = self._load_audio(row['path'])
+            loaded_audio[i] = self._load_audio(row['chunk_path'])
 
             latent = row['latents']
+
+            # If it's a string, parse it manually
+            if isinstance(latent, str):
+                # Remove brackets and split by comma
+                latent = latent.strip('[]').split(',')
+                # Convert each element to float
+                latent = [float(x.strip()) for x in latent]
+
+            # Now convert to numpy array
             if not isinstance(latent, np.ndarray):
                 latent = np.asarray(latent, dtype=np.float32)
+
             loaded_latents[i] = torch.from_numpy(latent)
 
-            pedal_names[i] = row['effect']
+            pedal_names[i] = row['pedal']
             gains[i] = row['gain']
             tones[i] = row['tone']
 
@@ -269,3 +302,21 @@ class Prism_Dataset(Dataset):
             "tones": processed_data['tones'],
             "_raw_dataset_idx": idx,
         }
+
+def main():
+    import pandas as pd
+    TEST_AUDIO_DF = pd.read_csv("_prepared_data/audio_chunks_metadata.csv")
+    TEST_LATENT_DF = pd.read_csv("_prepared_data/metadata_with_latents.csv")
+
+    dataset = Prism_Dataset(
+        audio_dataframe=TEST_AUDIO_DF,
+        latent_dataframe=TEST_LATENT_DF,
+        unprocessed_wav_path="DATA/input_unprocessed.wav",
+        chunk_size=2048,
+        n_bands=4,
+        allowed_indices=[0, 1, 2, 3, 4, 5]
+    )
+
+if __name__ == "__main__":
+    main()
+    pass

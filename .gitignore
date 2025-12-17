@@ -1,5 +1,8 @@
 _prepared_data
 DATA/*/
+DATA/*.wav
+VAE/vae_output/
+WN-TCN/wntcn_output/
 
 
 # Byte-compiled / optimized / DLL files

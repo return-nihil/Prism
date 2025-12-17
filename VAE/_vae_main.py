@@ -16,7 +16,10 @@ from load_config import load_config
 cfg = load_config("config.yaml")
 
 
-METADATA_CSV = os.path.join(cfg["paths"]["data_processed_folder"], "sweeps_metadata.csv")
+DATA_PROCESSED_FOLDER = cfg["paths"]["data_processed_folder"]
+VAE_OUTPUT_FOLDER = cfg["paths"]["vae_output_folder"]
+os.makedirs(VAE_OUTPUT_FOLDER, exist_ok=True)
+METADATA_CSV = os.path.join(DATA_PROCESSED_FOLDER, "sweeps_metadata.csv")
 LABELS = cfg["data_processing"]["pedals"]
 BATCH_SIZE = cfg["training"]["vae"]["batch_size"]
 EPOCHS = cfg["training"]["vae"]["epochs"]
@@ -33,6 +36,8 @@ def extract_latents(dataloader, model, label_to_index, index_to_label, output_pa
 
     for batch in dataloader:
         sweep = batch["sweep"].float().to(device).unsqueeze(1)
+        for label in batch["pedal"]:
+            assert label in label_to_index, f"Label {label} not found in label_to_index mapping."
         target_class = torch.tensor([label_to_index[label] for label in batch["pedal"]], dtype=torch.long).to(device)
         target_gain = batch["gain"].clone().detach().to(torch.long).to(device)
         target_tone = batch["tone"].clone().detach().to(torch.long).to(device)
@@ -49,12 +54,17 @@ def extract_latents(dataloader, model, label_to_index, index_to_label, output_pa
     df = pd.DataFrame(all_data)
     df['pedal'] = df['pedal'].map(index_to_label)
     df.to_csv(os.path.join(output_path, "vae_latents.csv"), index=False)
-    print("Latents saved")
+    print("Latents saved to:", os.path.join(output_path, "vae_latents.csv"))
 
 
 def merge_metadata_with_latents(metadata_csv, latents_csv, output_csv):
     metadata_df = pd.read_csv(metadata_csv)
     latents_df = pd.read_csv(latents_csv)
+
+    # Print metadata_df columns
+    print("Metadata DataFrame columns:", metadata_df.columns.tolist())
+    # Print latents_df columns
+    print("Latents DataFrame columns:", latents_df.columns.tolist())
 
     merged_df = pd.merge(metadata_df, latents_df, on=["pedal", "gain", "tone"])
     merged_df.to_csv(output_csv, index=False)
@@ -94,7 +104,6 @@ def run_training_pipeline():
                            lr=LEARNING_RATE, 
                            weight_decay=1e-5)
 
-    os.makedirs("vae_output", exist_ok=True)
 
     train(model=model,
           train_loader=train_dataloader,
@@ -102,23 +111,23 @@ def run_training_pipeline():
           optimizer_model=optimizer_model, 
           epochs=EPOCHS,
           device=DEVICE,
-          output_path="vae_output")
+          output_path=VAE_OUTPUT_FOLDER)
 
     extract_latents(
         dataloader=full_dataloader,
         model=model,
         label_to_index=label_to_index,
         index_to_label=index_to_label,
-        output_path="vae_output",
+        output_path=VAE_OUTPUT_FOLDER,
         device=DEVICE)
 
-    tsne_on_latents("vae_output/vae_latents.csv", 
-                    "vae_output/vae_latents_tsne.csv", 
-                    "vae_output/vae_latents_tsne.png")
+    tsne_on_latents(os.path.join(VAE_OUTPUT_FOLDER,"vae_latents.csv"), 
+                    os.path.join(VAE_OUTPUT_FOLDER,"vae_latents_tsne.csv"), 
+                    os.path.join(VAE_OUTPUT_FOLDER,"vae_latents_tsne.png"))
     
     merge_metadata_with_latents(METADATA_CSV, 
-                                "vae_output/vae_latents.csv",
-                                "DATA/_prepared_data/metadata_with_latents.csv")
+                                os.path.join(VAE_OUTPUT_FOLDER,"vae_latents.csv"),
+                                os.path.join(DATA_PROCESSED_FOLDER,"metadata_with_latents.csv"))
 
 if __name__ == "__main__":
     run_training_pipeline()

@@ -31,8 +31,7 @@ def train(model,
 
         for batch in train_loader:
             model.train()
-            print('batch keys:', batch.keys() )
-            audio = batch['audio'].float().to(device).unsqueeze(1)
+            audio = batch['sweep'].float().to(device).unsqueeze(1)
 
             optimizer_model.zero_grad()
             noise = torch.randn(audio.size(0), 1, audio.size(2)).to(device) * 0.000001
@@ -77,7 +76,7 @@ def evaluate(model, val_loader, device):
 
     with torch.no_grad():
         for batch in val_loader:
-            audio = batch['audio'].float().to(device).unsqueeze(1)
+            audio = batch['sweep'].float().to(device).unsqueeze(1)
             output, _, _, _ = model(audio)
             recon_loss, stft_loss, l1_loss = valid_loss(audio, output)
             recon += recon_loss.item()
