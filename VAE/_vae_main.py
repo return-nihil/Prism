@@ -1,6 +1,6 @@
 import torch
 import pandas as pd
-import os
+
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from sklearn.model_selection import train_test_split
@@ -21,7 +21,8 @@ LABELS = cfg["data_processing"]["pedals"]
 BATCH_SIZE = cfg["training"]["vae"]["batch_size"]
 EPOCHS = cfg["training"]["vae"]["epochs"]
 LEARNING_RATE = cfg["training"]["vae"]["learning_rate"]
-LATENT_DIM = cfg["training"]["vae"]["latent_dim"]
+LATENT_DIM = cfg["models"]["vae"]["latent_dim"]
+EXPANSION_FACTOR = cfg["models"]["vae"]["expansion_factor"]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -85,7 +86,8 @@ def run_training_pipeline():
                                 batch_size=BATCH_SIZE, 
                                 shuffle=False)
 
-    model = Prism_VAE(latent_dim=LATENT_DIM).to(DEVICE)
+    model = Prism_VAE(latent_dim=LATENT_DIM, 
+                      expansion_factor=EXPANSION_FACTOR).to(DEVICE)
     model.apply(weights_init)
 
     optimizer_model = Adam(model.parameters(), 

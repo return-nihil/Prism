@@ -14,6 +14,16 @@ data_processing:
   sweep_offset: 16000
   sweep_length: 64000
 
+models:
+  vae:
+    latent_dim: 8
+    expansion_factor: 32
+  wn_tcn:
+    channels: 64
+    n_blocks: 8
+    cond_dim: 64
+    band_hidden: 64
+    
 training:
   vae:
     latent_dim: 8

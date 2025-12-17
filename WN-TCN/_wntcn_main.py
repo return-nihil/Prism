@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import os
 from torch.utils.data import DataLoader
 import pandas as pd
 from datetime import datetime
@@ -28,8 +27,11 @@ MIN_LR = cfg["training"]["wntcn"]["min_lr"]
 SEED = cfg["seed"]
 UNPROCESSED_WAV = cfg["paths"]["unprocessed_wav"]
 
-LATENT_DIM = cfg["training"]["vae"]["latent_dim"]
-
+LATENT_DIM = cfg["models"]["vae"]["latent_dim"]
+CHANNELLS = cfg["models"]["wn_tcn"]["channels"]
+N_BLOCKS = cfg["models"]["wn_tcn"]["n_blocks"]
+COND_DIM = cfg["models"]["wn_tcn"]["cond_dim"]
+BAND_HIDDEN = cfg["models"]["wn_tcn"]["band_hidden"]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.makedirs("wntcn_output", exist_ok=True)
@@ -94,11 +96,11 @@ def run_training_pipeline():
 
         model = WN_TCN(inp_channel=1, 
                       out_channel=1, 
-                      channels=64, 
-                      n_blocks=8, 
-                      cond_dim=64, 
+                      channels=CHANNELLS, 
+                      n_blocks=N_BLOCKS, 
+                      cond_dim=COND_DIM, 
                       sample_rate=48000, 
-                      band_hidden=64,
+                      band_hidden=BAND_HIDDEN,
                       latent_dim=LATENT_DIM,
                       n_bands=n_bands 
                       ).to(DEVICE)
