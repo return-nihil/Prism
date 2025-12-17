@@ -34,6 +34,7 @@ CHANNELLS = cfg["models"]["wn_tcn"]["channels"]
 N_BLOCKS = cfg["models"]["wn_tcn"]["n_blocks"]
 COND_DIM = cfg["models"]["wn_tcn"]["cond_dim"]
 BAND_HIDDEN = cfg["models"]["wn_tcn"]["band_hidden"]
+TEST_SIZE = cfg["training"]["wntcn"]["test_size"]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.makedirs(TCN_OUTPUT_FOLDER, exist_ok=True)
@@ -51,7 +52,7 @@ def run_training_pipeline():
     np.random.seed(SEED)
     np.random.shuffle(all_indices)
     
-    split = int(len(all_indices) * 0.8)
+    split = int(len(all_indices) * (1-TEST_SIZE))
     train_indices = all_indices[:split]
     test_indices = all_indices[split:]
 

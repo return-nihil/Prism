@@ -32,11 +32,13 @@ training:
     batch_size: 16
     epochs: 1000
     learning_rate: 1.0e-3
+    test_size: 0.1
   wntcn:
     batch_size: 64
     epochs: 300
     learning_rate: 1.0e-3
     min_lr: 1.0e-6
+    test_size: 0.2
     band_configs: [8, 6, 4, 3, 2, 1] # this will train all configs + 1-band baseline
 
 

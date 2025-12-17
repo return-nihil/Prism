@@ -26,6 +26,8 @@ EPOCHS = cfg["training"]["vae"]["epochs"]
 LEARNING_RATE = cfg["training"]["vae"]["learning_rate"]
 LATENT_DIM = cfg["models"]["vae"]["latent_dim"]
 EXPANSION_FACTOR = cfg["models"]["vae"]["expansion_factor"]
+TEST_SIZE = cfg["training"]["vae"]["test_size"]
+SEED = cfg["seed"]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -85,7 +87,7 @@ def run_training_pipeline():
                                  batch_size=16, 
                                  shuffle=False)
     
-    train_df, val_df = train_test_split(dataframe, test_size=0.1, random_state=42, shuffle=True)
+    train_df, val_df = train_test_split(dataframe, test_size=TEST_SIZE, random_state=SEED, shuffle=True)
     train_dataset = VAE_Dataset(train_df)
     val_dataset = VAE_Dataset(val_df)
     
