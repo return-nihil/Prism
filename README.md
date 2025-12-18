@@ -52,6 +52,14 @@ Each effect can be applied independently to different frequency bands with indiv
 - Provides conditioning vectors for the TCN
 - Enables smooth interpolation between different effect types
 
+<!-- ![Neural Network Architecture](docs/img/archi_PRISM_2.png) -->
+<!-- ![Neural Network Architecture](docs/img/inference.png) -->
+<div align="center">>
+    <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/archi_PRISM_2.png?raw=true" alt="Neural Network Architecture" width="60%"/>
+    <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/inference.PNG?raw=true" alt="Neural Network Inference Pipeline" width="40%"/>
+</div>
+
+
 ---
 
 ## 📊 Training Pipeline
