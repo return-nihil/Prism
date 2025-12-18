@@ -28,6 +28,10 @@ This repository contains the neural network core for **Prism**, a multiband dist
 
 **For the plugin GUI and interface, see the [Plugin Interface Repository](https://github.com/domenicostefani/prism-distortion).**
 
+<div align="center">
+    <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/plugin.png?raw=true" alt="Prism Plugin Interface" width="40%"/>
+</div>
+
 ### 🎯 What's Modeled
 
 The neural network models three distinct analog distortion effects:
