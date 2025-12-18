@@ -14,9 +14,9 @@
 ## 📑 Contents:
 
 - [Overview](#-overview)
-- [Architecture](#-architecture)
+- [Architecture](#%EF%B8%8F-architecture)
 - [Training Pipeline](#-training-pipeline)
-- [Plugin Interface](#-plugin-interface)
+- [Plugin Interface](#%EF%B8%8F-plugin-interface)
 - [Demos](#-demos)
 - [Related Links](#-related-links)
 
