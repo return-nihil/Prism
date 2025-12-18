@@ -11,15 +11,24 @@
 
 ---
 
+## 📑 Contents:
+
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Training Pipeline](#-training-pipeline)
+- [Plugin Interface](#-plugin-interface)
+- [Demos](#-demos)
+- [Related Links](#-related-links)
+
+---
+
 ## 📖 Overview
 
 This repository contains the neural network core for **Prism**, a multiband distortion audio plugin. The neural network learns complex transfer functions that model analog boutique pedals, enabling sophisticated distortion effects across multiple frequency bands.
 
 **For the plugin GUI and interface, see the [Plugin Interface Repository](https://github.com/domenicostefani/prism-distortion).**
 
----
-
-## 🎯 What's Modeled
+### 🎯 What's Modeled
 
 The neural network models three distinct analog distortion effects:
 
@@ -122,6 +131,6 @@ All demos [here](https://domenicostefani.com/prism-distortion/demos/demos-multib
 
 ### 🔗 Related Links
 
-[🌐 Website](https://domenicostefani.com/prism-distortion) • [🖥️ Plugin Interface](https://github.com/domenicostefani/prism-distortion) • [🎬 Demos](https://domenicostefani.com/prism-distortiondemos/demos-multiband.html)
+[🌐 Website](https://domenicostefani.com/prism-distortion) • [🖥️ Plugin Interface](https://github.com/domenicostefani/prism-distortion) • [🎬 Demos](https://domenicostefani.com/prism-distortion/demos/demos-multiband.html)
 
 </div>
