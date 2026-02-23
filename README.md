@@ -46,21 +46,36 @@ Each effect can be applied independently to different frequency bands with indiv
 
 ## 🏗️ Architecture
 
-### Temporal Convolution Network (TCN)
+<div align="center">
+    <!-- <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/archi_PRISM_2.png?raw=true" alt="Neural Network Architecture" width="60%"/> -->
+    <img src="docs/architecture.jpg" alt="Neural Network Architecture" width="60%"/>
+    <!-- <img src="docs/inference.jpg" alt="Neural Network Inference Pipeline" width="40%"/> -->
+</div>
+
+### Processing Network (Temporal Convolution Network - TCN)
 - Learns a single complex transfer function with sophisticated band behaviors
 - Receives per-band conditioning on effect type, gain, and tone settings
 - Enables real-time audio processing with low latency
+
+
+<div align="center">
+    <img src="docs/WN_TCN_highlevel.drawio.png" alt="Neural Network Architecture" width="60%"/>
+</div>
 
 ### Variational Autoencoder (VAE)
 - Learns latent representations of pedal characteristics
 - Provides conditioning vectors for the TCN
 - Enables smooth interpolation between different effect types
 
+
+### Inference Pipeline
+
 <!-- ![Neural Network Architecture](docs/img/archi_PRISM_2.png) -->
 <!-- ![Neural Network Architecture](docs/img/inference.png) -->
-<div align="center">>
-    <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/archi_PRISM_2.png?raw=true" alt="Neural Network Architecture" width="60%"/>
-    <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/inference.PNG?raw=true" alt="Neural Network Inference Pipeline" width="40%"/>
+<div align="center">
+    <!-- <img src="https://github.com/domenicostefani/prism-distortion/blob/main/docs/img/archi_PRISM_2.png?raw=true" alt="Neural Network Architecture" width="60%"/> -->
+    <!-- <img src="docs/architecture.jpg" alt="Neural Network Architecture" width="60%"/> -->
+    <img src="docs/inference.jpg" alt="Neural Network Inference Pipeline" width="40%"/>
 </div>
 
 
